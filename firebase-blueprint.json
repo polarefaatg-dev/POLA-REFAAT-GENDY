@@ -1,0 +1,148 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account details and settings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "contractor", "consultant"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email"]
+    },
+    "Job": {
+      "title": "Job/Project",
+      "description": "A specific construction job or task being tracked",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "on-hold"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "status"]
+    },
+    "TimeLog": {
+      "title": "Time Entry",
+      "description": "Logs for workers clocking in and out of jobs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "clockIn": { "type": "string", "format": "date-time" },
+        "clockOut": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "notes": { "type": "string" }
+      },
+      "required": ["userId", "jobId", "clockIn"]
+    },
+    "MaterialSubmittal": {
+      "title": "Material Submittal",
+      "description": "Detailed tracking of material approval status",
+      "type": "object",
+      "properties": {
+        "submittalId": { "type": "string" },
+        "division": { "type": "string" },
+        "boqRef": { "type": "string" },
+        "description": { "type": "string" },
+        "supplier": { "type": "string" },
+        "unit": { "type": "string" },
+        "quantity": { "type": "number" },
+        "location": { "type": "string" },
+        "status": { "type": "string" },
+        "priority": { "type": "string" },
+        "nextAction": { "type": "string" },
+        "responsible": { "type": "string" },
+        "rev": { "type": "string" },
+        "dateApproved": { "type": "string" },
+        "boqAmount": { "type": "number" },
+        "finishCode": { "type": "string" },
+        "dateSubmitted": { "type": "string" },
+        "mockupRequired": { "type": "string" },
+        "irDwgRequired": { "type": "string" },
+        "irDwgStatus": { "type": "string" },
+        "poStatus": { "type": "string" },
+        "irRef": { "type": "string" },
+        "plannedMsDate": { "type": "string", "format": "date" },
+        "plannedPoDate": { "type": "string", "format": "date" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "sortOrder": { "type": "number" }
+      },
+      "required": ["division", "description", "status"]
+    },
+    "SubmittalHistory": {
+      "title": "Approval History",
+      "description": "Timeline of status changes for a submittal",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" },
+        "comment": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "timestamp"]
+    },
+    "Document": {
+      "title": "Document Attachment",
+      "description": "Uploaded documents related to jobs or submittals",
+      "type": "object",
+      "properties": {
+        "docId": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "relatedId": { "type": "string" },
+        "type": { "type": "string", "enum": ["submittal", "job"] },
+        "uploadedBy": { "type": "string" },
+        "uploadedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "url", "relatedId"]
+    },
+    "Preference": {
+      "title": "App Preferences",
+      "description": "Global application settings and branding",
+      "type": "object",
+      "properties": {
+        "appName": { "type": "string" },
+        "orgName": { "type": "string" },
+        "primaryColor": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["appName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Active jobs"
+    },
+    "/timelogs/{logId}": {
+      "schema": "TimeLog",
+      "description": "Global time tracking logs"
+    },
+    "/materials/{materialId}": {
+      "schema": "MaterialSubmittal",
+      "description": "Main material tracking collection"
+    },
+    "/materials/{materialId}/history/{historyId}": {
+      "schema": "SubmittalHistory",
+      "description": "Timeline for specific material"
+    },
+    "/documents/{docId}": {
+      "schema": "Document",
+      "description": "References to uploaded files"
+    },
+    "/settings/global": {
+      "schema": "Preference",
+      "description": "Global application configuration"
+    }
+  }
+}

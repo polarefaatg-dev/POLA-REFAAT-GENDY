@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Primitive Definitions
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // 2. Validation Blueprints
+    function isValidMaterial(data) {
+      return data.division is string && data.division.size() <= 100 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.status is string && data.status.size() <= 100 &&
+             data.priority in ['HIGH', 'MEDIUM', 'LOW'] &&
+             data.quantity is number &&
+             (!('rev' in data) || (data.rev is string && data.rev.size() <= 20)) &&
+             (!('boqRef' in data) || (data.boqRef is string && data.boqRef.size() <= 100)) &&
+             (!('poStatus' in data) || (data.poStatus is string && data.poStatus.size() <= 100)) &&
+             (!('responsible' in data) || (data.responsible is string && data.responsible.size() <= 100)) &&
+             (!('nextAction' in data) || (data.nextAction is string && data.nextAction.size() <= 500)) &&
+             (!('irDwgStatus' in data) || (data.irDwgStatus is string && data.irDwgStatus.size() <= 100));
+    }
+
+    function isValidHistory(data) {
+      return data.status is string && data.status.size() <= 100 &&
+             data.updatedBy is string && data.updatedBy.size() <= 200 &&
+             data.timestamp == request.time;
+    }
+
+    // 3. Collection Rules
+    
+    // Materials: The Core Registry
+    match /materials/{materialId} {
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && isValidId(materialId);
+      
+      allow create: if isVerified() && isValidId(materialId) && isValidMaterial(incoming()) && incoming().createdAt == request.time;
+      
+      allow update: if isVerified() && isValidId(materialId) && (
+        isValidMaterial(incoming()) && 
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time
+      );
+
+      // Sub-collection: History Logs
+      match /history/{historyId} {
+        allow list: if isSignedIn();
+        allow create: if isVerified() && isValidId(historyId) && isValidHistory(incoming());
+      }
+    }
+
+    // Jobs Collection
+    match /jobs/{jobId} {
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && isValidId(jobId);
+    }
+
+    // Time Logs Collection
+    match /timelogs/{logId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(logId) && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && isValidId(logId) && incoming().userId == request.auth.uid && incoming().clockIn is timestamp;
+      allow update: if isVerified() && isValidId(logId) && existing().userId == request.auth.uid && 
+                   incoming().diff(existing()).affectedKeys().hasOnly(['clockOut', 'durationMinutes', 'notes']);
+    }
+
+    // Admin Access
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+    }
+
+    // Connectivity Test
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}
